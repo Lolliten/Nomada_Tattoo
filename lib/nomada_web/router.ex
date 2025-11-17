@@ -17,7 +17,10 @@ defmodule NomadaWeb.Router do
   scope "/", NomadaWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", HomeLive
+    live "/portfolio", PortfolioLive.Index
+    live "/about", AboutLive
+    live "/contact", ContactLive
   end
 
   # Other scopes may use custom stacks.
