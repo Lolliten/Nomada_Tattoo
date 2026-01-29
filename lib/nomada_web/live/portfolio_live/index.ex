@@ -15,7 +15,7 @@ defmodule NomadaWeb.PortfolioLive.Index do
   def mount(_params, _session, socket) do
     # TODO: Replace with database query when backend is implemented
     # tattoos = Nomada.Portfolio.list_tattoos()
-    tattoos = [
+    all_tattoos = [
       %{
         id: 1,
         image: "/images/tattoo/tattoo-1.jpg",
@@ -66,7 +66,65 @@ defmodule NomadaWeb.PortfolioLive.Index do
       }
     ]
 
-    {:ok, assign(socket, tattoos: tattoos)}
+    {:ok,
+     assign(socket,
+       all_tattoos: all_tattoos,
+       filtered_tattoos: all_tattoos,
+       selected_category: "All",
+       search_query: ""
+     )}
+  end
+
+  @impl true
+  def handle_event("filter_category", %{"category" => category}, socket) do
+    filtered =
+      if category == "All" do
+        socket.assigns.all_tattoos
+      else
+        Enum.filter(socket.assigns.all_tattoos, fn tattoo ->
+          tattoo.category == category
+        end)
+      end
+
+    # Apply search if there's an active query
+    filtered =
+      if socket.assigns.search_query != "" do
+        apply_search(filtered, socket.assigns.search_query)
+      else
+        filtered
+      end
+
+    {:noreply,
+     assign(socket, filtered_tattoos: filtered, selected_category: category)}
+  end
+
+  @impl true
+  def handle_event("search", %{"query" => query}, socket) do
+    filtered = apply_search(socket.assigns.all_tattoos, query)
+
+    # Apply category filter if not "All"
+    filtered =
+      if socket.assigns.selected_category != "All" do
+        Enum.filter(filtered, fn tattoo ->
+          tattoo.category == socket.assigns.selected_category
+        end)
+      else
+        filtered
+      end
+
+    {:noreply, assign(socket, filtered_tattoos: filtered, search_query: query)}
+  end
+
+  defp apply_search(tattoos, query) do
+    query_lower = String.downcase(query)
+
+    Enum.filter(tattoos, fn tattoo ->
+      String.contains?(String.downcase(tattoo.title), query_lower) ||
+        String.contains?(String.downcase(tattoo.description), query_lower) ||
+        Enum.any?(tattoo.tags, fn tag ->
+          String.contains?(String.downcase(tag), query_lower)
+        end)
+    end)
   end
 
   @impl true
@@ -95,13 +153,29 @@ defmodule NomadaWeb.PortfolioLive.Index do
               <input
                 type="text"
                 placeholder="Search tattoos, styles, or tags..."
+                phx-keyup="search"
+                phx-debounce="300"
+                name="query"
+                value={@search_query}
                 class="w-full pl-12 pr-4 py-4 glass rounded-full text-foreground placeholder-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-gold)] transition-all duration-300"
               />
             </div>
             <!-- Category Filter Buttons -->
             <div class="flex flex-wrap gap-3 justify-center">
               <%= for category <- ["All", "Geometric", "Realism", "Traditional", "Neo-Traditional"] do %>
-                <button class="px-6 py-3 rounded-full font-bold text-sm tracking-wider transition-all duration-300 glass text-foreground hover:bg-[var(--color-gold)] hover:text-black border border-[var(--color-border)]">
+                <button
+                  phx-click="filter_category"
+                  phx-value-category={category}
+                  class={[
+                    "px-6 py-3 rounded-full font-bold text-sm tracking-wider transition-all duration-300 border",
+                    if(@selected_category == category,
+                      do:
+                        "bg-[var(--color-gold)] text-black border-[var(--color-gold)] shadow-glow",
+                      else:
+                        "glass text-foreground hover:bg-[var(--color-gold)] hover:text-black border-[var(--color-border)]"
+                    )
+                  ]}
+                >
                   {category}
                 </button>
               <% end %>
@@ -110,7 +184,15 @@ defmodule NomadaWeb.PortfolioLive.Index do
         </div>
         <!-- Portfolio Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-8xl mx-auto">
-          <%= for tattoo <- @tattoos do %>
+          <%= if Enum.empty?(@filtered_tattoos) do %>
+            <div class="col-span-full text-center py-16">
+              <.icon name="hero-magnifying-glass" class="w-16 h-16 text-[var(--color-muted)] mx-auto mb-4" />
+              <p class="text-xl text-[var(--color-muted)]">
+                No tattoos found matching your search criteria.
+              </p>
+            </div>
+          <% end %>
+          <%= for tattoo <- @filtered_tattoos do %>
             <div class="group relative glass rounded-2xl overflow-hidden shadow-elegant hover:shadow-glow transition-all duration-700 transform hover:scale-105 hover:-rotate-1">
               <div class="aspect-square overflow-hidden">
                 <img
@@ -148,7 +230,7 @@ defmodule NomadaWeb.PortfolioLive.Index do
             together.
           </p>
           <.link
-            navigate={~p"/contact"}
+            navigate={~p"/#contact"}
             class="inline-block bg-gradient-gold text-black px-12 py-5 rounded-full font-bold text-lg hover:shadow-glow transition-all duration-300 transform hover:scale-105 tracking-wider"
           >
             BOOK FREE CONSULTATION

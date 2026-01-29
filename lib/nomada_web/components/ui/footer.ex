@@ -53,23 +53,23 @@ defmodule NomadaWeb.Components.UI.Footer do
               <h4 class="font-semibold text-foreground mb-4">Quick Links</h4>
               <div class="space-y-2">
                 <.link
+                  navigate={~p"/"}
+                  class="block text-[var(--color-muted)] hover:text-[var(--color-gold)] transition-colors duration-300"
+                >
+                  Home
+                </.link>
+                <.link
                   navigate={~p"/portfolio"}
                   class="block text-[var(--color-muted)] hover:text-[var(--color-gold)] transition-colors duration-300"
                 >
                   Portfolio
                 </.link>
-                <.link
-                  navigate={~p"/about"}
-                  class="block text-[var(--color-muted)] hover:text-[var(--color-gold)] transition-colors duration-300"
-                >
-                  About Me
-                </.link>
-                <.link
-                  navigate={~p"/contact"}
+                <a
+                  href="/#contact"
                   class="block text-[var(--color-muted)] hover:text-[var(--color-gold)] transition-colors duration-300"
                 >
                   Contact
-                </.link>
+                </a>
               </div>
             </div>
             <!-- Contact Info -->

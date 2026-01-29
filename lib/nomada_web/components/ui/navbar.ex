@@ -61,7 +61,7 @@ defmodule NomadaWeb.Components.UI.Navbar do
   end
 
   @doc """
-  Renders the main navigation menu with hexagonal button styling.
+  Renders the main navigation menu with smooth scroll anchor links.
   """
   attr :current_page, :atom, default: :home
 
@@ -73,20 +73,29 @@ defmodule NomadaWeb.Components.UI.Navbar do
           <!-- Desktop Navigation -->
           <div class="hidden md:flex items-center justify-center space-x-8">
             <%= for {item, index} <- Enum.with_index([
-              {"HOME", ~p"/"},
-              {"ABOUT US", ~p"/about"},
-              {"PORTFOLIO", ~p"/portfolio"},
-              {"APPOINTMENT", ~p"/contact"},
-              {"CONTACT", ~p"/contact"}
+              {"HOME", "/#home"},
+              {"GALLERY", "/#gallery-preview"},
+              {"CONTACT", "/#contact"},
+              {"FULL PORTFOLIO", ~p"/portfolio"}
             ]) do %>
               <div class="flex items-center">
-                <.link
-                  navigate={elem(item, 1)}
-                  class="relative text-foreground hover:text-[var(--color-gold)] transition-all duration-300 font-bold tracking-widest text-xs uppercase px-8 py-4 hover:scale-105 transform font-metal group nav-hex glass"
-                >
-                  <span class="relative z-10">{elem(item, 0)}</span>
-                  <div class="absolute inset-0 bg-foreground opacity-0 group-hover:opacity-20 transition-opacity duration-300 nav-hex" />
-                </.link>
+                <%= if String.starts_with?(elem(item, 1), "/#") do %>
+                  <a
+                    href={elem(item, 1)}
+                    class="smooth-scroll relative text-foreground hover:text-[var(--color-gold)] transition-all duration-300 font-bold tracking-widest text-xs uppercase px-8 py-4 hover:scale-105 transform font-metal group nav-hex glass"
+                  >
+                    <span class="relative z-10">{elem(item, 0)}</span>
+                    <div class="absolute inset-0 bg-foreground opacity-0 group-hover:opacity-20 transition-opacity duration-300 nav-hex" />
+                  </a>
+                <% else %>
+                  <.link
+                    navigate={elem(item, 1)}
+                    class="relative text-foreground hover:text-[var(--color-gold)] transition-all duration-300 font-bold tracking-widest text-xs uppercase px-8 py-4 hover:scale-105 transform font-metal group nav-hex glass"
+                  >
+                    <span class="relative z-10">{elem(item, 0)}</span>
+                    <div class="absolute inset-0 bg-foreground opacity-0 group-hover:opacity-20 transition-opacity duration-300 nav-hex" />
+                  </.link>
+                <% end %>
                 <%= if index == 0 do %>
                   <div class="ml-8 w-px h-8 bg-[var(--color-gold)] opacity-30"></div>
                 <% end %>
@@ -108,18 +117,27 @@ defmodule NomadaWeb.Components.UI.Navbar do
         >
           <div class="flex flex-col space-y-4 pt-4">
             <%= for {label, href} <- [
-              {"HOME", ~p"/"},
-              {"ABOUT US", ~p"/about"},
-              {"PORTFOLIO", ~p"/portfolio"},
-              {"APPOINTMENT", ~p"/contact"},
-              {"CONTACT", ~p"/contact"}
+              {"HOME", "/#home"},
+              {"GALLERY", "/#gallery-preview"},
+              {"CONTACT", "/#contact"},
+              {"FULL PORTFOLIO", ~p"/portfolio"}
             ] do %>
-              <.link
-                navigate={href}
-                class="relative text-foreground hover:text-[var(--color-gold)] transition-all duration-300 font-bold tracking-widest text-xs uppercase px-8 py-4 text-center hover:scale-105 transform font-metal nav-hex glass"
-              >
-                {label}
-              </.link>
+              <%= if String.starts_with?(href, "/#") do %>
+                <a
+                  href={href}
+                  class="smooth-scroll relative text-foreground hover:text-[var(--color-gold)] transition-all duration-300 font-bold tracking-widest text-xs uppercase px-8 py-4 text-center hover:scale-105 transform font-metal nav-hex glass"
+                  phx-click={toggle_mobile_menu()}
+                >
+                  {label}
+                </a>
+              <% else %>
+                <.link
+                  navigate={href}
+                  class="relative text-foreground hover:text-[var(--color-gold)] transition-all duration-300 font-bold tracking-widest text-xs uppercase px-8 py-4 text-center hover:scale-105 transform font-metal nav-hex glass"
+                >
+                  {label}
+                </.link>
+              <% end %>
             <% end %>
           </div>
         </div>

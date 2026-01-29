@@ -46,6 +46,38 @@ liveSocket.connect()
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
 
+// Smooth scroll for anchor links
+document.addEventListener('DOMContentLoaded', () => {
+  // Handle smooth scroll for all anchor links with smooth-scroll class
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest('a.smooth-scroll, a[href^="/#"]')
+    if (!target) return
+
+    const href = target.getAttribute('href')
+    if (!href || !href.includes('#')) return
+
+    // Extract the hash
+    const hash = href.split('#')[1]
+    if (!hash) return
+
+    const element = document.getElementById(hash)
+    if (!element) return
+
+    e.preventDefault()
+
+    // Smooth scroll to the element
+    element.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    })
+
+    // Update URL without triggering navigation
+    if (history.pushState) {
+      history.pushState(null, null, `#${hash}`)
+    }
+  })
+})
+
 // The lines below enable quality of life phoenix_live_reload
 // development features:
 //

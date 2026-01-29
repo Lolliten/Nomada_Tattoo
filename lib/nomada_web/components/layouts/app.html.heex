@@ -1,0 +1,9 @@
+<.navbar current_page={assigns[:current_page] || :home} />
+
+<main>
+  <%= @inner_content %>
+</main>
+
+<.footer />
+
+<.flash_group flash={@flash} />

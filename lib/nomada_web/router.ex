@@ -17,10 +17,10 @@ defmodule NomadaWeb.Router do
   scope "/", NomadaWeb do
     pipe_through :browser
 
-    live "/", HomeLive
-    live "/portfolio", PortfolioLive.Index
-    live "/about", AboutLive
-    live "/contact", ContactLive
+    live_session :default, layout: {NomadaWeb.Layouts, :app} do
+      live "/", HomeLive
+      live "/portfolio", PortfolioLive.Index
+    end
   end
 
   # Other scopes may use custom stacks.
