@@ -4,7 +4,32 @@ defmodule NomadaWeb.HomeLive do
   """
   use NomadaWeb, :live_view
 
-  import NomadaWeb.CoreComponents, only: [icon: 1]
+  import NomadaWeb.CoreComponents, only: [icon: 1, input: 1]
+
+  alias Nomada.Mailer
+  alias Phoenix.LiveView.Socket
+
+  # Simple embedded schema for contact form validation
+  defmodule ContactForm do
+    use Ecto.Schema
+    import Ecto.Changeset
+
+    @primary_key false
+    embedded_schema do
+      field :name, :string
+      field :email, :string
+      field :message, :string
+    end
+
+    def changeset(contact_form, attrs) do
+      contact_form
+      |> cast(attrs, [:name, :email, :message])
+      |> validate_required([:name, :email, :message], message: "is required")
+      |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must be a valid email")
+      |> validate_length(:name, min: 2, message: "must be at least 2 characters")
+      |> validate_length(:message, min: 10, message: "must be at least 10 characters")
+    end
+  end
 
   @impl true
   def mount(_params, _session, socket) do
@@ -75,7 +100,75 @@ defmodule NomadaWeb.HomeLive do
       }
     ]
 
-    {:ok, assign(socket, preview_tattoos: preview_tattoos, contact_info: contact_info)}
+    contact_form = ContactForm.changeset(%ContactForm{}, %{})
+
+    {:ok,
+     assign(socket,
+       preview_tattoos: preview_tattoos,
+       contact_info: contact_info,
+       form: to_form(contact_form)
+     )}
+  end
+
+  @impl true
+  def handle_event("validate_contact", %{"contact_form" => contact_params}, socket) do
+    changeset =
+      %ContactForm{}
+      |> ContactForm.changeset(contact_params)
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, form: to_form(changeset))}
+  end
+
+  @impl true
+  def handle_event("submit_contact", %{"contact_form" => contact_params}, socket) do
+    changeset = ContactForm.changeset(%ContactForm{}, contact_params)
+
+    case Ecto.Changeset.apply_action(changeset, :insert) do
+      {:ok, contact} ->
+        case send_contact_email(contact) do
+          {:ok, _} ->
+            {:noreply,
+             socket
+             |> put_flash(:info, "Thank you! Your message has been sent. I'll get back to you within 24 hours.")
+             |> assign(form: to_form(ContactForm.changeset(%ContactForm{}, %{})))}
+
+          {:error, _reason} ->
+            {:noreply,
+             put_flash(socket, :error, "Sorry, there was an error sending your message. Please try contacting me directly via phone or email.")}
+        end
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, form: to_form(changeset))}
+    end
+  end
+
+  defp send_contact_email(contact) do
+    import Swoosh.Email
+
+    email =
+      new()
+      |> to("nomadatatts@gmail.com")
+      |> from({"Nomada Website", "noreply@nomadatattoo.com"})
+      |> subject("New Consultation Request from #{contact.name}")
+      |> html_body("""
+      <h2>New Consultation Request</h2>
+      <p><strong>Name:</strong> #{contact.name}</p>
+      <p><strong>Email:</strong> #{contact.email}</p>
+      <p><strong>Message:</strong></p>
+      <p>#{String.replace(contact.message, "\n", "<br>")}</p>
+      """)
+      |> text_body("""
+      New Consultation Request
+
+      Name: #{contact.name}
+      Email: #{contact.email}
+
+      Message:
+      #{contact.message}
+      """)
+
+    Mailer.deliver(email)
   end
 
   @impl true
@@ -286,19 +379,21 @@ defmodule NomadaWeb.HomeLive do
                 </div>
               </div>
               <!-- Quick Contact Form -->
-              <!-- TODO: Implement form handling with Phoenix.HTML.Form -->
-              <!-- TODO: Add changeset validation -->
-              <!-- TODO: Connect to Contact context for database storage -->
-              <!-- TODO: Set up email notifications via Swoosh -->
               <div class="glass p-8 rounded-xl shadow-elegant">
                 <h3 class="font-display text-3xl font-semibold text-foreground mb-6">
                   Quick Contact
                 </h3>
 
-                <form class="space-y-6">
+                <.form
+                  for={@form}
+                  phx-change="validate_contact"
+                  phx-submit="submit_contact"
+                  class="space-y-6"
+                >
                   <div>
                     <label class="block text-sm font-medium text-foreground mb-2">Name *</label>
-                    <input
+                    <.input
+                      field={@form[:name]}
                       type="text"
                       class="w-full px-4 py-3 bg-[var(--color-input)] border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-gold)] focus:border-transparent transition-all duration-300 text-foreground"
                       placeholder="Your full name"
@@ -307,7 +402,8 @@ defmodule NomadaWeb.HomeLive do
 
                   <div>
                     <label class="block text-sm font-medium text-foreground mb-2">Email *</label>
-                    <input
+                    <.input
+                      field={@form[:email]}
                       type="email"
                       class="w-full px-4 py-3 bg-[var(--color-input)] border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-gold)] focus:border-transparent transition-all duration-300 text-foreground"
                       placeholder="your.email@example.com"
@@ -316,12 +412,13 @@ defmodule NomadaWeb.HomeLive do
 
                   <div>
                     <label class="block text-sm font-medium text-foreground mb-2">Message *</label>
-                    <textarea
+                    <.input
+                      field={@form[:message]}
+                      type="textarea"
                       rows="5"
                       class="w-full px-4 py-3 bg-[var(--color-input)] border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-gold)] focus:border-transparent transition-all duration-300 text-foreground"
                       placeholder="Describe your tattoo idea, size, placement and any questions..."
-                    >
-                    </textarea>
+                    />
                   </div>
 
                   <button
@@ -330,7 +427,7 @@ defmodule NomadaWeb.HomeLive do
                   >
                     Send Message
                   </button>
-                </form>
+                </.form>
 
                 <p class="text-sm text-[var(--color-muted)] mt-4 text-center">
                   I usually respond within 24 hours

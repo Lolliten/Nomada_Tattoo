@@ -1,5 +1,9 @@
 # Nomada
 
+## About
+
+A solo project for a tattoer to collect his work online without cencur in high quality images.
+
 To start your Phoenix server:
 
 * Run `mix setup` to install and setup dependencies
