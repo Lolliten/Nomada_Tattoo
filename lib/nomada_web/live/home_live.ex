@@ -7,7 +7,6 @@ defmodule NomadaWeb.HomeLive do
   import NomadaWeb.CoreComponents, only: [icon: 1, input: 1]
 
   alias Nomada.Mailer
-  alias Phoenix.LiveView.Socket
 
   # Simple embedded schema for contact form validation
   defmodule ContactForm do
@@ -33,42 +32,48 @@ defmodule NomadaWeb.HomeLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    # Sample tattoos for gallery preview (TODO: Replace with database query)
-    preview_tattoos = [
+    # TODO: Replace with database query when backend is implemented
+    all_tattoos = [
       %{
         id: 1,
         image: "/images/tattoo/tattoo-1.jpg",
         title: "Geometric Mandala",
-        category: "Geometric"
+        description: "Detailed geometric mandala design in black & grey",
+        category: "Blackwork"
       },
       %{
         id: 2,
         image: "/images/tattoo/tattoo-2.jpg",
         title: "Realistic Portrait",
-        category: "Realism"
+        description: "Realistic female portrait in black and grey",
+        category: "Blackwork"
       },
       %{
         id: 3,
         image: "/images/tattoo/tattoo-3.jpg",
         title: "Japanese Dragon",
-        category: "Traditional"
+        description: "Traditional Japanese dragon sleeve with bold lines",
+        category: "Neo-Traditional"
       },
       %{
         id: 4,
         image: "/images/tattoo/tattoo-1.jpg",
         title: "Sacred Geometry",
-        category: "Geometric"
+        description: "Complex sacred geometry patterns",
+        category: "Dot-Work"
       },
       %{
         id: 5,
         image: "/images/tattoo/tattoo-2.jpg",
         title: "Dark Portrait",
-        category: "Realism"
+        description: "Gothic style portrait with shadows",
+        category: "Blackwork"
       },
       %{
         id: 6,
         image: "/images/tattoo/tattoo-3.jpg",
-        title: "Neo Traditional",
+        title: "Neo Traditional Rose",
+        description: "Modern take on traditional tattoo style",
         category: "Neo-Traditional"
       }
     ]
@@ -104,10 +109,26 @@ defmodule NomadaWeb.HomeLive do
 
     {:ok,
      assign(socket,
-       preview_tattoos: preview_tattoos,
+       all_tattoos: all_tattoos,
+       filtered_tattoos: all_tattoos,
+       selected_category: "All",
        contact_info: contact_info,
        form: to_form(contact_form)
      )}
+  end
+
+  @impl true
+  def handle_event("filter_category", %{"category" => category}, socket) do
+    filtered_tattoos =
+      if category == "All" do
+        socket.assigns.all_tattoos
+      else
+        Enum.filter(socket.assigns.all_tattoos, fn tattoo ->
+          tattoo.category == category
+        end)
+      end
+
+    {:noreply, assign(socket, filtered_tattoos: filtered_tattoos, selected_category: category)}
   end
 
   @impl true
@@ -218,12 +239,12 @@ defmodule NomadaWeb.HomeLive do
           </p>
 
           <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <.link
-              navigate={~p"/portfolio"}
+            <a
+              href="#gallery"
               class="bg-gradient-gold text-black px-8 py-4 rounded-lg font-semibold text-lg hover:shadow-glow transition-all duration-300 transform hover:scale-105"
             >
-              View Full Portfolio
-            </.link>
+              View Gallery
+            </a>
             <a
               href="#contact"
               class="border-2 border-[var(--color-gold)] text-[var(--color-gold)] px-8 py-4 rounded-lg font-semibold text-lg hover:bg-[var(--color-gold)] hover:text-black transition-all duration-300"
@@ -234,26 +255,53 @@ defmodule NomadaWeb.HomeLive do
         </div>
         <!-- Scroll Indicator -->
         <a
-          href="#gallery-preview"
+          href="#gallery"
           class="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10"
         >
           <.icon name="hero-chevron-down" class="text-[var(--color-gold)] animate-bounce w-8 h-8" />
         </a>
       </section>
-      <!-- Gallery Preview Section -->
-      <section id="gallery-preview" class="py-24 bg-[rgba(30,30,30,0.2)]">
+      <!-- Gallery Section -->
+      <section id="gallery" class="py-24 bg-[rgba(30,30,30,0.2)]">
         <div class="container mx-auto px-6">
           <div class="text-center mb-16">
             <h2 class="font-gothic text-5xl md:text-6xl font-bold text-foreground mb-6">
-              RECENT <span class="text-[var(--color-gold)]">WORK</span>
+              MY <span class="text-[var(--color-gold)]">GALLERY</span>
             </h2>
             <p class="text-xl text-[var(--color-muted)] max-w-3xl mx-auto">
-              A selection of my latest tattoo artistry. Each piece tells a unique story.
+              Explore my tattoo artistry. Each piece tells a unique story.
             </p>
           </div>
-
+          <!-- Category Filter -->
+          <div class="flex flex-wrap gap-3 justify-center mb-12">
+            <%= for category <- ["All", "Blackwork", "Neo-Traditional", "Dot-Work"] do %>
+              <button
+                phx-click="filter_category"
+                phx-value-category={category}
+                class={[
+                  "px-6 py-3 rounded-full font-bold text-sm tracking-wider transition-all duration-300 border",
+                  if(@selected_category == category,
+                    do:
+                      "bg-[var(--color-gold)] text-black border-[var(--color-gold)] shadow-glow",
+                    else:
+                      "glass text-foreground hover:bg-[var(--color-gold)] hover:text-black border-[var(--color-border)]"
+                  )
+                ]}
+              >
+                {category}
+              </button>
+            <% end %>
+          </div>
+          <!-- Gallery Grid -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <%= for tattoo <- @preview_tattoos do %>
+            <%= if Enum.empty?(@filtered_tattoos) do %>
+              <div class="col-span-full text-center py-16">
+                <p class="text-xl text-[var(--color-muted)]">
+                  No tattoos found in this category.
+                </p>
+              </div>
+            <% end %>
+            <%= for tattoo <- @filtered_tattoos do %>
               <div class="group relative glass rounded-2xl overflow-hidden shadow-elegant hover:shadow-glow transition-all duration-500 transform hover:scale-105">
                 <div class="aspect-square overflow-hidden">
                   <img
@@ -267,22 +315,14 @@ defmodule NomadaWeb.HomeLive do
                     <span class="inline-block px-4 py-2 bg-[var(--color-gold)] text-black text-sm font-bold rounded-full mb-3">
                       {tattoo.category}
                     </span>
-                    <h3 class="font-gothic text-xl font-bold tracking-wider">
+                    <h3 class="font-gothic text-xl font-bold mb-2 tracking-wider">
                       {tattoo.title}
                     </h3>
+                    <p class="text-gray-200 text-sm">{tattoo.description}</p>
                   </div>
                 </div>
               </div>
             <% end %>
-          </div>
-
-          <div class="text-center mt-16">
-            <.link
-              navigate={~p"/portfolio"}
-              class="inline-block bg-gradient-gold text-black px-10 py-4 rounded-full font-bold text-lg hover:shadow-glow transition-all duration-300 transform hover:scale-105 tracking-wider"
-            >
-              VIEW FULL PORTFOLIO
-            </.link>
           </div>
         </div>
       </section>

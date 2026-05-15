@@ -19,7 +19,6 @@ defmodule NomadaWeb.Router do
 
     live_session :default, layout: {NomadaWeb.Layouts, :app} do
       live "/", HomeLive
-      live "/portfolio", PortfolioLive.Index
     end
   end
 

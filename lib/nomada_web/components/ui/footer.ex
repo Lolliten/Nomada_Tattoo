@@ -52,18 +52,18 @@ defmodule NomadaWeb.Components.UI.Footer do
             <div class="text-center">
               <h4 class="font-semibold text-foreground mb-4">Quick Links</h4>
               <div class="space-y-2">
-                <.link
-                  navigate={~p"/"}
+                <a
+                  href="/#home"
                   class="block text-[var(--color-muted)] hover:text-[var(--color-gold)] transition-colors duration-300"
                 >
                   Home
-                </.link>
-                <.link
-                  navigate={~p"/portfolio"}
+                </a>
+                <a
+                  href="/#gallery"
                   class="block text-[var(--color-muted)] hover:text-[var(--color-gold)] transition-colors duration-300"
                 >
-                  Portfolio
-                </.link>
+                  Gallery
+                </a>
                 <a
                   href="/#contact"
                   class="block text-[var(--color-muted)] hover:text-[var(--color-gold)] transition-colors duration-300"
@@ -85,7 +85,7 @@ defmodule NomadaWeb.Components.UI.Footer do
 
           <div class="border-t border-[var(--color-border)] pt-8 text-center">
             <p class="text-[var(--color-muted)]">
-              © 2025 Nomada Tattoo Artist. All rights reserved.
+              © 2026 Nomada Tattoo Artist. All rights reserved.
             </p>
           </div>
         </div>

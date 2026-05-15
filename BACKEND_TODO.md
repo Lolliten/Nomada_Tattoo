@@ -5,19 +5,18 @@ This document outlines all the backend features that need to be implemented for 
 ## 1. Database Schema
 
 ### Tattoo Schema
-Create a `Tattoo` schema for portfolio items:
+Create a `Tattoo` schema for gallery items:
 
 ```elixir
-# lib/nomada/portfolio/tattoo.ex
-defmodule Nomada.Portfolio.Tattoo do
+# lib/nomada/gallery/tattoo.ex
+defmodule Nomada.Gallery.Tattoo do
   use Ecto.Schema
   import Ecto.Changeset
 
   schema "tattoos" do
     field :title, :string
     field :description, :text
-    field :category, :string  # "Geometric", "Realism", "Traditional", "Neo-Traditional"
-    field :tags, {:array, :string}
+    field :category, :string  # "Blackwork", "Neo-Traditional", "Dot-Work"
 
     # S3 & CloudFront URLs
     field :s3_key, :string          # S3 object key
@@ -40,11 +39,11 @@ defmodule Nomada.Portfolio.Tattoo do
 
   def changeset(tattoo, attrs) do
     tattoo
-    |> cast(attrs, [:title, :description, :category, :tags, :s3_key, :s3_url,
+    |> cast(attrs, [:title, :description, :category, :s3_key, :s3_url,
                     :cloudfront_url, :file_size, :content_type, :width, :height,
                     :featured, :display_order, :published])
-    |> validate_required([:title, :description, :category, :s3_url, :cloudfront_url])
-    |> validate_inclusion(:category, ["Geometric", "Realism", "Traditional", "Neo-Traditional"])
+    |> validate_required([:title, :description, :category, :cloudfront_url])
+    |> validate_inclusion(:category, ["Blackwork", "Neo-Traditional", "Dot-Work"])
   end
 end
 ```
@@ -83,13 +82,13 @@ end
 
 ## 2. Context Modules
 
-### Portfolio Context
+### Gallery Context
 ```elixir
-# lib/nomada/portfolio.ex
-defmodule Nomada.Portfolio do
+# lib/nomada/gallery.ex
+defmodule Nomada.Gallery do
   import Ecto.Query
   alias Nomada.Repo
-  alias Nomada.Portfolio.Tattoo
+  alias Nomada.Gallery.Tattoo
 
   def list_tattoos(opts \\ []) do
     Tattoo
@@ -286,9 +285,9 @@ end
 
 ## 5. Admin Panel (Future Feature)
 
-Create a LiveView admin panel for managing portfolio and contacts:
+Create a LiveView admin panel for managing gallery and contacts:
 
-- `/admin/tattoos` - CRUD for portfolio items
+- `/admin/tattoos` - CRUD for gallery items
 - `/admin/tattoos/upload` - Image upload interface
 - `/admin/contacts` - View contact form submissions
 - Add authentication with `phx.gen.auth`
@@ -309,10 +308,9 @@ defmodule Nomada.Repo.Migrations.CreateTattoos do
       add :title, :string, null: false
       add :description, :text, null: false
       add :category, :string, null: false
-      add :tags, {:array, :string}, default: []
 
-      add :s3_key, :string, null: false
-      add :s3_url, :string, null: false
+      add :s3_key, :string
+      add :s3_url, :string
       add :cloudfront_url, :string, null: false
 
       add :file_size, :integer
@@ -367,10 +365,10 @@ end
 
 Update components to use real data from contexts:
 
-### Portfolio Component
+### Gallery Component
 ```elixir
-# In page_components.ex, replace static data with:
-assigns = assign(assigns, :tattoos, Nomada.Portfolio.list_tattoos())
+# In home_live.ex mount/3, replace static data with:
+all_tattoos = Nomada.Gallery.list_tattoos()
 ```
 
 ### Contact Form

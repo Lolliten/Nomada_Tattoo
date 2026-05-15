@@ -74,9 +74,8 @@ defmodule NomadaWeb.Components.UI.Navbar do
           <div class="hidden md:flex items-center justify-center space-x-8">
             <%= for {item, index} <- Enum.with_index([
               {"HOME", "/#home"},
-              {"GALLERY", "/#gallery-preview"},
-              {"CONTACT", "/#contact"},
-              {"FULL PORTFOLIO", ~p"/portfolio"}
+              {"GALLERY", "/#gallery"},
+              {"CONTACT", "/#contact"}
             ]) do %>
               <div class="flex items-center">
                 <%= if String.starts_with?(elem(item, 1), "/#") do %>
@@ -118,9 +117,8 @@ defmodule NomadaWeb.Components.UI.Navbar do
           <div class="flex flex-col space-y-4 pt-4">
             <%= for {label, href} <- [
               {"HOME", "/#home"},
-              {"GALLERY", "/#gallery-preview"},
-              {"CONTACT", "/#contact"},
-              {"FULL PORTFOLIO", ~p"/portfolio"}
+              {"GALLERY", "/#gallery"},
+              {"CONTACT", "/#contact"}
             ] do %>
               <%= if String.starts_with?(href, "/#") do %>
                 <a
