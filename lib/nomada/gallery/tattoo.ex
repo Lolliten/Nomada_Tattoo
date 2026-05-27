@@ -10,12 +10,10 @@ defmodule Nomada.Gallery.Tattoo do
     field :description, :string
     field :category, :string
 
-    # S3 & CloudFront URLs
-    field :s3_key, :string
-    field :s3_url, :string
-    field :cloudfront_url, :string
+    # S3 image URL
+    field :image_url, :string
 
-    # Image metadata
+    # Image metadata (optional)
     field :file_size, :integer
     field :content_type, :string
     field :width, :integer
@@ -36,9 +34,7 @@ defmodule Nomada.Gallery.Tattoo do
       :title,
       :description,
       :category,
-      :s3_key,
-      :s3_url,
-      :cloudfront_url,
+      :image_url,
       :file_size,
       :content_type,
       :width,
@@ -47,7 +43,7 @@ defmodule Nomada.Gallery.Tattoo do
       :display_order,
       :published
     ])
-    |> validate_required([:title, :description, :category, :cloudfront_url])
+    |> validate_required([:title, :description, :category, :image_url])
     |> validate_inclusion(:category, ["Blackwork", "Neo-Traditional", "Dot-Work"])
     |> validate_length(:title, min: 2, max: 255)
     |> validate_length(:description, min: 10, max: 5000)

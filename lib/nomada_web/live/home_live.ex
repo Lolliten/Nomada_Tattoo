@@ -6,77 +6,14 @@ defmodule NomadaWeb.HomeLive do
 
   import NomadaWeb.CoreComponents, only: [icon: 1, input: 1]
 
-  alias Nomada.Mailer
-
-  # Simple embedded schema for contact form validation
-  defmodule ContactForm do
-    use Ecto.Schema
-    import Ecto.Changeset
-
-    @primary_key false
-    embedded_schema do
-      field :name, :string
-      field :email, :string
-      field :message, :string
-    end
-
-    def changeset(contact_form, attrs) do
-      contact_form
-      |> cast(attrs, [:name, :email, :message])
-      |> validate_required([:name, :email, :message], message: "is required")
-      |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must be a valid email")
-      |> validate_length(:name, min: 2, message: "must be at least 2 characters")
-      |> validate_length(:message, min: 10, message: "must be at least 10 characters")
-    end
-  end
+  alias Nomada.Contact
+  alias Nomada.Contact.Message
+  alias Nomada.Gallery
 
   @impl true
   def mount(_params, _session, socket) do
-    # TODO: Replace with database query when backend is implemented
-    all_tattoos = [
-      %{
-        id: 1,
-        image: "/images/tattoo/tattoo-1.jpg",
-        title: "Geometric Mandala",
-        description: "Detailed geometric mandala design in black & grey",
-        category: "Blackwork"
-      },
-      %{
-        id: 2,
-        image: "/images/tattoo/tattoo-2.jpg",
-        title: "Realistic Portrait",
-        description: "Realistic female portrait in black and grey",
-        category: "Blackwork"
-      },
-      %{
-        id: 3,
-        image: "/images/tattoo/tattoo-3.jpg",
-        title: "Japanese Dragon",
-        description: "Traditional Japanese dragon sleeve with bold lines",
-        category: "Neo-Traditional"
-      },
-      %{
-        id: 4,
-        image: "/images/tattoo/tattoo-1.jpg",
-        title: "Sacred Geometry",
-        description: "Complex sacred geometry patterns",
-        category: "Dot-Work"
-      },
-      %{
-        id: 5,
-        image: "/images/tattoo/tattoo-2.jpg",
-        title: "Dark Portrait",
-        description: "Gothic style portrait with shadows",
-        category: "Blackwork"
-      },
-      %{
-        id: 6,
-        image: "/images/tattoo/tattoo-3.jpg",
-        title: "Neo Traditional Rose",
-        description: "Modern take on traditional tattoo style",
-        category: "Neo-Traditional"
-      }
-    ]
+    # Load tattoos from database
+    all_tattoos = Gallery.list_tattoos()
 
     contact_info = [
       %{
@@ -105,15 +42,13 @@ defmodule NomadaWeb.HomeLive do
       }
     ]
 
-    contact_form = ContactForm.changeset(%ContactForm{}, %{})
-
     {:ok,
      assign(socket,
        all_tattoos: all_tattoos,
        filtered_tattoos: all_tattoos,
        selected_category: "All",
        contact_info: contact_info,
-       form: to_form(contact_form)
+       form: to_form(Contact.change_message(%Message{}))
      )}
   end
 
@@ -132,64 +67,30 @@ defmodule NomadaWeb.HomeLive do
   end
 
   @impl true
-  def handle_event("validate_contact", %{"contact_form" => contact_params}, socket) do
+  def handle_event("validate_contact", %{"message" => message_params}, socket) do
     changeset =
-      %ContactForm{}
-      |> ContactForm.changeset(contact_params)
+      %Message{}
+      |> Contact.change_message(message_params)
       |> Map.put(:action, :validate)
 
     {:noreply, assign(socket, form: to_form(changeset))}
   end
 
   @impl true
-  def handle_event("submit_contact", %{"contact_form" => contact_params}, socket) do
-    changeset = ContactForm.changeset(%ContactForm{}, contact_params)
+  def handle_event("submit_contact", %{"message" => message_params}, socket) do
+    case Contact.create_message(message_params) do
+      {:ok, _message} ->
+        {:noreply,
+         socket
+         |> put_flash(
+           :info,
+           "Thank you! Your message has been sent. I'll get back to you within 24 hours."
+         )
+         |> assign(form: to_form(Contact.change_message(%Message{})))}
 
-    case Ecto.Changeset.apply_action(changeset, :insert) do
-      {:ok, contact} ->
-        case send_contact_email(contact) do
-          {:ok, _} ->
-            {:noreply,
-             socket
-             |> put_flash(:info, "Thank you! Your message has been sent. I'll get back to you within 24 hours.")
-             |> assign(form: to_form(ContactForm.changeset(%ContactForm{}, %{})))}
-
-          {:error, _reason} ->
-            {:noreply,
-             put_flash(socket, :error, "Sorry, there was an error sending your message. Please try contacting me directly via phone or email.")}
-        end
-
-      {:error, changeset} ->
+      {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, form: to_form(changeset))}
     end
-  end
-
-  defp send_contact_email(contact) do
-    import Swoosh.Email
-
-    email =
-      new()
-      |> to("nomadatatts@gmail.com")
-      |> from({"Nomada Website", "noreply@nomadatattoo.com"})
-      |> subject("New Consultation Request from #{contact.name}")
-      |> html_body("""
-      <h2>New Consultation Request</h2>
-      <p><strong>Name:</strong> #{contact.name}</p>
-      <p><strong>Email:</strong> #{contact.email}</p>
-      <p><strong>Message:</strong></p>
-      <p>#{String.replace(contact.message, "\n", "<br>")}</p>
-      """)
-      |> text_body("""
-      New Consultation Request
-
-      Name: #{contact.name}
-      Email: #{contact.email}
-
-      Message:
-      #{contact.message}
-      """)
-
-    Mailer.deliver(email)
   end
 
   @impl true
@@ -305,7 +206,7 @@ defmodule NomadaWeb.HomeLive do
               <div class="group relative glass rounded-2xl overflow-hidden shadow-elegant hover:shadow-glow transition-all duration-500 transform hover:scale-105">
                 <div class="aspect-square overflow-hidden">
                   <img
-                    src={tattoo.image}
+                    src={tattoo.image_url}
                     alt={tattoo.title}
                     class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
